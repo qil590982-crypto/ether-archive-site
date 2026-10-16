@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: ether-archive-public-20261016
+    runtime: static
+    buildCommand: echo "No build required"
+    staticPublishPath: ./public
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
