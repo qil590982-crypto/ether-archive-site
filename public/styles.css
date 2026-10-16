@@ -125,13 +125,23 @@ button:focus-visible,a:focus-visible,label:focus-within,input:focus-visible,text
 .restore-photo{border:1px solid rgba(225,232,231,.24);padding:9px 13px;color:#e1e6e3;background:rgba(12,14,16,.54)}
 .restore-photo:hover{border-color:rgba(225,232,231,.58);background:rgba(220,230,231,.08)}
 .viewer-actions button:disabled{opacity:.48;cursor:wait}
+.music-panel{position:absolute;top:clamp(76px,11vh,112px);left:clamp(18px,4vw,48px);width:min(255px,calc(100vw - 36px));padding:17px 18px 13px;background:rgba(11,13,15,.86);border:1px solid var(--line);box-shadow:0 20px 72px rgba(0,0,0,.42);backdrop-filter:blur(12px);pointer-events:auto}
+.music-label{display:block;margin:9px 0 8px;color:#b8bfbd;font-size:10px;letter-spacing:.12em}
+.music-panel select{display:block;width:100%;min-height:38px;padding:0 10px;border:1px solid rgba(216,226,224,.2);border-radius:0;background:#101315;color:#e2e5e2;font-size:11px;letter-spacing:.04em}
+.music-panel select:focus-visible{outline:1px solid #d1d8d9;outline-offset:3px}
+.music-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:5px}
+.music-actions .text-button{font-size:10px;letter-spacing:.08em}
+.music-actions button:disabled{opacity:.42;cursor:default}
+.music-volume{display:flex;align-items:center;gap:12px;margin-top:9px;color:#929a99;font-size:9px;letter-spacing:.1em}
+.music-volume input{flex:1;min-width:0;height:2px;accent-color:#cbd2d1;cursor:pointer}
+.music-track-label{overflow:hidden;margin:9px 0 0;color:#727a7a;font-size:9px;letter-spacing:.035em;text-overflow:ellipsis;white-space:nowrap}
 .metadata-panel{position:absolute;top:clamp(76px,11vh,112px);right:clamp(18px,4vw,48px);width:min(360px,calc(100vw - 36px));max-height:calc(100dvh - 145px);overflow:auto;padding:24px;background:rgba(11,13,15,.91);border:1px solid var(--line);box-shadow:0 24px 84px rgba(0,0,0,.48);backdrop-filter:blur(14px);pointer-events:auto}
 .metadata-panel label{display:flex;flex-direction:column;gap:9px;margin:0 0 21px;color:#b1b8b7;font-size:10px;letter-spacing:.16em}
 .metadata-panel input,.metadata-panel textarea{width:100%;resize:vertical;background:transparent;border:0;border-bottom:1px solid rgba(216,226,224,.22);border-radius:0;padding:7px 0 9px;color:#eff0ed;font-size:14px;letter-spacing:.035em;line-height:1.7;outline:none}
 .metadata-panel textarea{border:1px solid rgba(216,226,224,.18);padding:12px;min-height:110px}
 .metadata-panel input:focus,.metadata-panel textarea:focus{border-color:rgba(225,236,236,.65)}
 .viewer-hint{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);padding:8px 12px;background:rgba(8,9,11,.46);white-space:nowrap;color:#aab1af;pointer-events:none}
-@media(max-width:640px){.viewer-shell{padding:16px 12px}.viewer-topline{align-items:flex-start}.viewer-actions{gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:74vw}.viewer-actions .text-button{font-size:9px;padding:7px 5px}.viewer-actions .icon-button{width:32px;height:32px}.restore-photo{padding:7px 8px}.metadata-panel{right:12px;top:76px;width:min(360px,calc(100vw - 24px))}.viewer-hint{bottom:12px;max-width:calc(100vw - 24px);white-space:normal;text-align:center}}
+@media(max-width:640px){.viewer-shell{padding:16px 12px}.viewer-topline{align-items:flex-start}.viewer-actions{gap:3px;flex-wrap:wrap;justify-content:flex-end;max-width:74vw}.viewer-actions .text-button{font-size:9px;padding:7px 5px}.viewer-actions .icon-button{width:32px;height:32px}.restore-photo{padding:7px 8px}.music-panel{top:auto;bottom:53px;left:12px;width:min(255px,calc(100vw - 24px));padding:13px 15px 10px}.music-actions{gap:8px}.music-actions .text-button{font-size:9px;padding:7px 0}.metadata-panel{right:12px;top:76px;width:min(360px,calc(100vw - 24px))}.viewer-hint{bottom:12px;max-width:calc(100vw - 24px);white-space:normal;text-align:center}}
 @keyframes space-in{from{opacity:.35}to{opacity:1}}
 @keyframes breathe{from{transform:translate3d(-1%,0,0) scale(1)}to{transform:translate3d(1.2%,.7%,0) scale(1.03)}}
 @keyframes drift{from{transform:translate3d(0,0,0);opacity:var(--opacity)}to{transform:translate3d(var(--drift-x),var(--drift-y),0);opacity:calc(var(--opacity)*.55)}}
@@ -143,3 +153,4 @@ button:focus-visible,a:focus-visible,label:focus-within,input:focus-visible,text
 .reduced-motion .haze,.reduced-motion .dust span{animation:none!important}
 .reduced-motion .camera,.reduced-motion .photo,.reduced-motion .viewer-card,.reduced-motion .puzzle-panel{transition-duration:.15s!important}
 .reduced-motion .photo{animation:none!important;--float-x:0px;--float-y:0px;--float-z:0px;--float-turn:0deg}
+

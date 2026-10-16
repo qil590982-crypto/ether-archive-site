@@ -1,13 +1,16 @@
 import { getAllMemories, saveMemory, removeMemory, clearMemories } from './storage.js';
 import { EtherScene } from './scene3d.js';
+import { MemoryMusic } from './music.js';
 
 const $ = id => document.getElementById(id);
 const photoInput = $('fileInput');
+const musicFileInput = $('musicFileInput');
 const memoryDialog = $('memoryDialog');
 const confirmDialog = $('confirmDialog');
 let sceneController = null;
 const reduceMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
+const MAX_MUSIC_BYTES = 50 * 1024 * 1024;
 const SUPPORTED = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 let memories = [];
@@ -20,6 +23,7 @@ let historyTimer = null;
 let toastTimer = null;
 let editTimer = null;
 let confirmMode = 'single';
+let musicPlayer = null;
 
 function id() { return crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
 function escapeText(value = '') { return value.replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[char]); }
@@ -34,6 +38,101 @@ function showToast(message, duration = 2900) {
 }
 
 function resetView() { sceneController?.resetCamera(); }
+
+function activeMemory() { return memories.find(item => item.id === activeId) || null; }
+
+function updateMusicPlaybackButton() {
+  const memory = activeMemory();
+  const choice = memory?.musicTrack || 'none';
+  const playable = choice === 'starlight' || choice === 'tide' || choice === 'dusk' || (choice === 'local' && memory?.musicBlob);
+  const button = $('musicPlay');
+  button.disabled = !playable;
+  button.textContent = musicPlayer?.playing ? 'Ⅱ 暂停' : '▶ 播放';
+  button.setAttribute('aria-label', musicPlayer?.playing ? '暂停音乐' : '播放音乐');
+}
+
+function updateMusicControls(memory = activeMemory()) {
+  if (!memory) return;
+  const select = $('musicSelect');
+  const localOption = select.querySelector('option[value="local"]');
+  localOption.disabled = !memory.musicBlob;
+  localOption.textContent = memory.musicBlob
+    ? `本地音乐 · ${memory.musicName || '已选择音频'}`
+    : '本地音乐（先选择音频）';
+  select.value = memory.musicTrack || 'none';
+  $('musicTrackLabel').textContent = memory.musicTrack === 'local' && memory.musicName
+    ? `仅保存在此设备 · ${memory.musicName}`
+    : '音乐只在这张照片打开时播放';
+  updateMusicPlaybackButton();
+}
+
+function startSelectedMusic(memory) {
+  if (!memory || !memory.musicTrack || memory.musicTrack === 'none') {
+    musicPlayer.stop();
+    return Promise.resolve();
+  }
+  if (memory.musicTrack === 'local') return musicPlayer.playLocal(memory.musicBlob);
+  return musicPlayer.playPreset(memory.musicTrack);
+}
+
+async function setMusicTrack(trackId) {
+  const memory = activeMemory();
+  if (!memory) return;
+  if (trackId === 'local' && !memory.musicBlob) {
+    $('musicSelect').value = memory.musicTrack || 'none';
+    showToast('先选择一段保存在本机的音频。');
+    return;
+  }
+  const previousTrack = memory.musicTrack;
+  memory.musicTrack = trackId;
+  updateMusicControls(memory);
+  const playback = startSelectedMusic(memory).catch(error => {
+    showToast(error.message || '音乐无法播放，请尝试其他音频。');
+    updateMusicPlaybackButton();
+  });
+  try {
+    await saveMemory(memory);
+  } catch {
+    if (previousTrack === undefined) delete memory.musicTrack;
+    else memory.musicTrack = previousTrack;
+    updateMusicControls(memory);
+    await startSelectedMusic(memory).catch(() => {});
+    showToast('音乐选择未能保存到此设备。');
+  }
+  await playback;
+}
+
+async function chooseLocalMusic(file) {
+  const memory = activeMemory();
+  if (!memory || !file) return;
+  if (!file.type.startsWith('audio/')) {
+    showToast('请选择音频文件。');
+    return;
+  }
+  if (file.size > MAX_MUSIC_BYTES) {
+    showToast('音频文件不能超过 50 MB。');
+    return;
+  }
+  const previous = { musicBlob: memory.musicBlob, musicName: memory.musicName, musicTrack: memory.musicTrack };
+  memory.musicBlob = new Blob([file], { type: file.type });
+  memory.musicName = file.name;
+  memory.musicTrack = 'local';
+  updateMusicControls(memory);
+  const playback = musicPlayer.playLocal(memory.musicBlob).catch(error => {
+    showToast(error.message || '音频无法播放，请尝试其他文件格式。');
+    updateMusicPlaybackButton();
+  });
+  try {
+    await saveMemory(memory);
+    showToast('已为这张照片保存本地音乐。');
+  } catch {
+    Object.assign(memory, previous);
+    musicPlayer.stop();
+    updateMusicControls(memory);
+    showToast('本机存储空间不足，音频没有保存。');
+  }
+  await playback;
+}
 
 function revokeUrl(memoryId) {
   const url = objectUrls.get(memoryId);
@@ -162,6 +261,11 @@ function openMemory(memoryId) {
   $('editPanel').hidden = true;
   $('editToggle').setAttribute('aria-expanded', 'false');
   $('dialogTitle').textContent = memory.title ? `A FRAGMENT OF ${memory.title.toUpperCase()}` : 'A PHOTOGRAPH IN PIECES';
+  updateMusicControls(memory);
+  startSelectedMusic(memory).catch(error => {
+    showToast(error.message || '音乐无法播放，请检查音频格式。');
+    updateMusicPlaybackButton();
+  });
   updatePuzzleHint(sceneController.puzzleStatus());
   memoryDialog.hidden = false;
   $('experience').classList.add('memory-open');
@@ -171,6 +275,7 @@ function openMemory(memoryId) {
 
 async function closeMemory() {
   if (!activeId) return;
+  musicPlayer.stop();
   if (editTimer) {
     clearTimeout(editTimer);
     editTimer = null;
@@ -184,6 +289,7 @@ async function closeMemory() {
 
 function finishMemoryRestore(memoryId) {
   if (activeId !== memoryId) return;
+  musicPlayer.stop();
   activeId = null;
   $('editPanel').hidden = true;
   $('editToggle').setAttribute('aria-expanded', 'false');
@@ -222,6 +328,7 @@ async function saveEdits() {
 async function deleteActive() {
   const memory = memories.find(item => item.id === activeId);
   if (!memory) return;
+  musicPlayer.stop();
   try {
     await removeMemory(memory.id);
     memories = memories.filter(item => item.id !== memory.id);
@@ -241,6 +348,7 @@ async function deleteActive() {
 
 async function deleteAll() {
   try {
+    musicPlayer.stop();
     await clearMemories();
     for (const memory of memories) revokeUrl(memory.id);
     memories = [];
@@ -336,7 +444,18 @@ function seedDust() {
   }
 }
 
+musicPlayer = new MemoryMusic(updateMusicPlaybackButton);
+musicPlayer.setVolume(Number($('musicVolume').value) / 100);
+
 photoInput.addEventListener('change', () => importFiles([...photoInput.files]));
+musicFileInput.addEventListener('change', async () => {
+  await chooseLocalMusic(musicFileInput.files?.[0]);
+  musicFileInput.value = '';
+});
+$('musicSelect').addEventListener('change', () => { void setMusicTrack($('musicSelect').value); });
+$('chooseMusic').addEventListener('click', () => musicFileInput.click());
+$('musicPlay').addEventListener('click', () => musicPlayer.toggle().catch(error => showToast(error.message || '音乐无法播放，请检查音频格式。')));
+$('musicVolume').addEventListener('input', event => musicPlayer.setVolume(Number(event.target.value) / 100));
 document.querySelectorAll('label[for="fileInput"]').forEach(label => label.addEventListener('keydown', event => {
   if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); photoInput.click(); }
 }));
@@ -403,9 +522,11 @@ sceneController = new EtherScene({
 });
 window.addEventListener('beforeunload', () => {
   sceneController?.dispose();
+  musicPlayer.dispose();
   for (const url of objectUrls.values()) URL.revokeObjectURL(url);
 });
 
 seedDust();
 if (reduced) document.documentElement.classList.add('reduced-motion');
 loadMemories();
+

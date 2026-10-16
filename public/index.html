@@ -31,7 +31,7 @@
     <section class="empty-state" id="emptyState" aria-labelledby="emptyTitle">
       <p class="eyebrow">A QUIET PLACE FOR WHAT REMAINS</p>
       <h1 id="emptyTitle">把一段记忆，放进这片安静之中。</h1>
-      <p class="empty-copy">照片只保存在此浏览器；同一地址下次打开仍可恢复。<br>不上传，也不替你补写时间。可随时清空本地记忆。</p>
+      <p class="empty-copy">照片和音乐只保存在此浏览器；同一地址下次打开仍可恢复。<br>不上传，也不替你补写时间。可随时清空本地记忆。</p>
       <label class="add-button" for="fileInput" role="button" tabindex="0"><span aria-hidden="true">＋</span> 放入照片</label>
       <p class="format-note">JPEG · PNG · WebP，单张最大 25 MB</p>
     </section>
@@ -63,6 +63,7 @@
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="sr-only" id="liveRegion" aria-live="polite"></div>
     <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+    <input id="musicFileInput" type="file" accept="audio/*" hidden>
 
     <section class="memory-dialog" id="memoryDialog" role="dialog" aria-modal="false" aria-labelledby="dialogTitle" hidden>
       <div class="viewer-shell">
@@ -75,6 +76,23 @@
             <button class="icon-button close-viewer" id="closeViewer" type="button" aria-label="恢复并关闭拼贴">×</button>
           </div>
         </div>
+        <aside class="music-panel" id="musicPanel" aria-label="照片音乐">
+          <p class="eyebrow">MUSIC FOR THIS MEMORY</p>
+          <label class="music-label" for="musicSelect">这张照片的音乐</label>
+          <select id="musicSelect" aria-label="选择这张照片的音乐">
+            <option value="none">静默</option>
+            <option value="starlight">星尘回响 · 延音</option>
+            <option value="tide">月潮 · 缓拍</option>
+            <option value="dusk">远岸 · 微光</option>
+            <option value="local" disabled>我的本地音乐</option>
+          </select>
+          <div class="music-actions">
+            <button class="text-button music-play" id="musicPlay" type="button" disabled>▶ 播放</button>
+            <button class="text-button music-upload" id="chooseMusic" type="button">选择本地音频</button>
+          </div>
+          <label class="music-volume" for="musicVolume"><span>音量</span><input id="musicVolume" type="range" min="0" max="100" value="36" aria-label="音乐音量"></label>
+          <p class="music-track-label" id="musicTrackLabel" aria-live="polite">音乐只在这张照片打开时播放</p>
+        </aside>
         <aside class="metadata-panel" id="editPanel" aria-label="编辑记忆" hidden>
           <label>日期<input id="editDate" type="text" maxlength="80" placeholder=""></label>
           <label>标题<input id="editTitle" type="text" maxlength="120" placeholder=""></label>
@@ -91,3 +109,4 @@
   </main>
 </body>
 </html>
+

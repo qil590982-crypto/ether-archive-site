@@ -1,28 +1,34 @@
 # ETHER — 缄默之境
 
-**在线体验：** [https://qil590982-crypto.github.io/ether-archive-site/](https://qil590982-crypto.github.io/ether-archive-site/)  
-**公开源代码：** [GitHub 仓库](https://github.com/qil590982-crypto/ether-archive-site)
+一个离线优先的 Three.js 照片拼贴作品。导入的照片会作为独立的 3D 物体在黑色深空中缓慢漂浮；拖动照片可以移动它，拖动背景可以观察空间，滚轮可以调整观察距离。点击照片后，它会连续裂解成 8 片不规则、保留正确图像采样的纸片。碎片初始散乱无色，拖到接近正确位置时会自动吸附并恢复色彩；双击空白处可重新打乱，选择 **恢复原照片** 可让碎片从当前位置平滑拼回照片。
 
-ETHER is a quiet, offline-first browser artwork for placing photographs into a Three.js space. Photos drift as independent 3D objects; drag a photo to move it, drag empty space to observe the scene, and use the wheel to change viewing distance. Clicking a photo continuously breaks it into eight irregular, UV-mapped paper pieces. Drag pieces near their matching positions to snap them into place and restore their color.
+每张照片都可以单独选择音乐：三种轻柔合成音景，或一段来自本机的音频文件。声音只在该照片打开时播放。
 
-## Use
+## 在线访问
 
-Open the live site and choose **放入照片**. JPEG, PNG, and WebP images up to 25 MB are supported.
+[打开 ETHER 网站](https://qil590982-crypto.github.io/ether-archive-site/)
 
-Each visitor's photos, previews, dates, titles, and notes stay in that visitor's browser's IndexedDB storage. The site does not upload them. Photos you add are visible only in the browser and device where you added them; other people who open the link will see their own archive and can add their own photos.
+## 本地运行
 
-Stored photos persist when the same browser opens the same site address again. The live site and a local copy use separate browser storage. Use **清空记忆** in the artwork, or clear this site's storage in browser settings, to remove an archive. Clearing browser site data also removes it. Imported files and their local data do not change the original files on disk.
+需要 Node.js 18 或更新版本。在此文件夹运行：
 
-Photos without user-entered dates remain undated. The rewind controls follow import order.
+```powershell
+node serve.mjs
+```
 
-## Controls
+然后打开 <http://127.0.0.1:8001>。按 `Ctrl+C` 停止本地服务器。Three.js 0.180.0 与 OrbitControls 已包含在 `vendor/three/`，运行时不需要加载外部库。
 
-- Drag a photo itself to move it in a camera-facing 3D plane. A short click starts its collage animation.
-- Drag empty space to orbit or pan the scene; use the mouse wheel to change camera distance.
-- In puzzle mode, hover or click a shard to lift it slightly, then drag it near the matching place to snap it into position. Correctly placed pieces regain color. Double-click empty space to scramble them again.
-- Choose **恢复原照片** or press `Esc` to animate the current shard positions back into the photograph.
-- Keyboard users can open photos from the hidden accessible photo list and use the visible controls; reduced motion remains available in the header.
+## 本地存储与隐私
 
-## Deployment
+每位访客导入的照片、显示预览、日期、标题、备注、所选音景以及可选音频文件，都保存在该访客当前浏览器的 IndexedDB（`ether-archive-local`）中，不会上传到网站。音频文件大小上限为 50 MB；所选文件名也只保存在当前浏览器。
 
-GitHub Actions publishes the `public/` directory to GitHub Pages whenever a commit is pushed to `main`. The workflow is in `.github/workflows/deploy.yml`.
+浏览器只会在相同浏览器和网站地址下恢复记忆。清除该网站的浏览器存储会同时删除这些本地数据；原始照片与音频文件不会被修改。
+
+## 操作
+
+- 拖动照片本身：在三维空间中移动照片；短按照片：进入拼贴。
+- 拖动空白背景：旋转或平移观察空间；滚轮：调整观察距离。
+- 拼贴时，将碎片拖至大致对应位置即可吸附并恢复色彩；双击空白区域重新打乱。
+- 选择 **恢复原照片** 或按 `Esc`：让碎片平滑拼回照片。
+- 在照片界面选择 **星尘回响**、**月潮**、**远岸** 或 **静默**，也可选择本机音频文件。
+
