@@ -11,7 +11,8 @@ let sceneController = null;
 const reduceMotionQuery = matchMedia('(prefers-reduced-motion: reduce)');
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 const MAX_MUSIC_BYTES = 50 * 1024 * 1024;
-const SUPPORTED = new Set(['image/jpeg', 'image/png', 'image/webp']);
+const IMAGE_FILE_NAME = /\.(?:avif|gif|heic|heif|jpe?g|png|webp)$/i;
+const UNSUPPORTED_IMAGE_TYPES = new Set(['image/svg+xml']);
 
 let memories = [];
 let objectUrls = new Map();
@@ -177,10 +178,30 @@ function validateImage(file) {
   return new Promise((resolve, reject) => {
     const image = new Image();
     const url = URL.createObjectURL(file);
-    image.onload = () => { URL.revokeObjectURL(url); resolve({ width: image.naturalWidth, height: image.naturalHeight }); };
-    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('无法读取图片，文件可能已损坏。')); };
+    let timer;
+    const fail = () => {
+      clearTimeout(timer);
+      URL.revokeObjectURL(url);
+      const error = new Error('无法读取图片，文件可能已损坏。');
+      error.code = 'image-decode';
+      reject(error);
+    };
+    image.onload = () => { clearTimeout(timer); URL.revokeObjectURL(url); resolve({ width: image.naturalWidth, height: image.naturalHeight }); };
+    image.onerror = fail;
+    timer = setTimeout(fail, 15000);
     image.src = url;
   });
+}
+
+function canAttemptImage(file) {
+  const type = file.type.toLowerCase();
+  return !UNSUPPORTED_IMAGE_TYPES.has(type) && (type.startsWith('image/') || IMAGE_FILE_NAME.test(file.name));
+}
+
+function importIssue(file, error) {
+  if (error?.message === '本机保存失败' || error?.name === 'QuotaExceededError') return `${file.name}: 本机存储空间不足或不可用`;
+  if (error?.code === 'image-decode') return `${file.name}: 此浏览器无法读取该图片，请使用 JPG、PNG 或 WebP`;
+  return `${file.name}: 无法导入，请重新选择后再试`;
 }
 
 async function makePreview(file, dimensions) {
@@ -218,34 +239,40 @@ async function importFiles(files) {
   photoInput.disabled = true;
   const added = [];
   const issues = [];
-  const knownHashes = new Set(memories.map(memory => memory.hash).filter(Boolean));
-  let nextOrder = Math.max(-1, ...memories.map(memory => memory.order)) + 1;
-  for (const file of files) {
-    if (!SUPPORTED.has(file.type)) { issues.push(`${file.name}: 格式不支持`); continue; }
-    if (file.size > MAX_FILE_BYTES) { issues.push(`${file.name}: 超过 25 MB`); continue; }
-    try {
-      const dimensions = await validateImage(file);
-      const hash = await contentHash(file);
-      if (hash && knownHashes.has(hash)) { issues.push(`${file.name}: 已在记忆中`); continue; }
-      if (hash) knownHashes.add(hash);
-      const preview = await makePreview(file, dimensions);
-      const memory = { id: id(), blob: new Blob([file], { type: file.type }), preview, hash, width: dimensions.width, height: dimensions.height, title: '', date: '', note: '', order: nextOrder++, created: Date.now() };
-      await saveMemory(memory);
-      added.push(memory);
-    } catch (error) {
-      issues.push(`${file.name}: ${error.message === '本机保存失败' ? '本机空间不足或无法保存' : '无法读取图片，请尝试重新导入'}`);
+  try {
+    const knownHashes = new Set(memories.map(memory => memory.hash).filter(Boolean));
+    let nextOrder = Math.max(-1, ...memories.map(memory => memory.order)) + 1;
+    for (const file of files) {
+      if (!canAttemptImage(file)) { issues.push(`${file.name}: 请选择常见图片格式`); continue; }
+      if (file.size > MAX_FILE_BYTES) { issues.push(`${file.name}: 超过 25 MB`); continue; }
+      try {
+        const dimensions = await validateImage(file);
+        const hash = await contentHash(file);
+        if (hash && knownHashes.has(hash)) { issues.push(`${file.name}: 已在记忆中`); continue; }
+        if (hash) knownHashes.add(hash);
+        const preview = await makePreview(file, dimensions);
+        const memory = { id: id(), blob: new Blob([file], { type: file.type }), preview, hash, width: dimensions.width, height: dimensions.height, title: '', date: '', note: '', order: nextOrder++, created: Date.now() };
+        await saveMemory(memory);
+        added.push(memory);
+      } catch (error) {
+        issues.push(importIssue(file, error));
+      }
     }
+    if (added.length) {
+      memories.push(...added);
+      if (memories.length === added.length) $('emptyState').classList.add('leaving');
+      renderScene(new Set(added.map(item => item.id)));
+      showToast(`已放入 ${added.length} 张照片，保存在此设备。`);
+    }
+    if (issues.length) showToast(issues.slice(0, 2).join('；') + (issues.length > 2 ? `；另有 ${issues.length - 2} 项未导入` : ''), 6000);
+  } catch (error) {
+    console.error('ETHER import error', error);
+    showToast('照片导入中断，请刷新页面后重试。', 5500);
+  } finally {
+    photoInput.value = '';
+    photoInput.disabled = false;
+    importBusy = false;
   }
-  if (added.length) {
-    memories.push(...added);
-    if (memories.length === added.length) $('emptyState').classList.add('leaving');
-    renderScene(new Set(added.map(item => item.id)));
-    showToast(`已放入 ${added.length} 张照片，保存在此设备。`);
-  }
-  if (issues.length) showToast(issues.slice(0, 2).join('；') + (issues.length > 2 ? `；另有 ${issues.length - 2} 项未导入` : ''), 6000);
-  photoInput.value = '';
-  photoInput.disabled = false;
-  importBusy = false;
 }
 
 function openMemory(memoryId) {
@@ -447,7 +474,18 @@ function seedDust() {
 musicPlayer = new MemoryMusic(updateMusicPlaybackButton);
 musicPlayer.setVolume(Number($('musicVolume').value) / 100);
 
-photoInput.addEventListener('change', () => importFiles([...photoInput.files]));
+function openPhotoPicker() {
+  if (importBusy) return;
+  try {
+    if (typeof photoInput.showPicker === 'function') photoInput.showPicker();
+    else photoInput.click();
+  } catch {
+    photoInput.click();
+  }
+}
+
+photoInput.addEventListener('change', () => { void importFiles([...photoInput.files]); });
+[$('choosePhotos'), $('addMorePhotos')].forEach(button => button.addEventListener('click', openPhotoPicker));
 musicFileInput.addEventListener('change', async () => {
   await chooseLocalMusic(musicFileInput.files?.[0]);
   musicFileInput.value = '';
@@ -456,9 +494,6 @@ $('musicSelect').addEventListener('change', () => { void setMusicTrack($('musicS
 $('chooseMusic').addEventListener('click', () => musicFileInput.click());
 $('musicPlay').addEventListener('click', () => musicPlayer.toggle().catch(error => showToast(error.message || '音乐无法播放，请检查音频格式。')));
 $('musicVolume').addEventListener('input', event => musicPlayer.setVolume(Number(event.target.value) / 100));
-document.querySelectorAll('label[for="fileInput"]').forEach(label => label.addEventListener('keydown', event => {
-  if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); photoInput.click(); }
-}));
 $('resetView').addEventListener('click', resetView);
 $('motionToggle').addEventListener('click', () => {
   reduced = !reduced;

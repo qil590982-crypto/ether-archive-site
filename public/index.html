@@ -32,8 +32,8 @@
       <p class="eyebrow">A QUIET PLACE FOR WHAT REMAINS</p>
       <h1 id="emptyTitle">把一段记忆，放进这片安静之中。</h1>
       <p class="empty-copy">照片和音乐只保存在此浏览器；同一地址下次打开仍可恢复。<br>不上传，也不替你补写时间。可随时清空本地记忆。</p>
-      <label class="add-button" for="fileInput" role="button" tabindex="0"><span aria-hidden="true">＋</span> 放入照片</label>
-      <p class="format-note">JPEG · PNG · WebP，单张最大 25 MB</p>
+      <button class="add-button" id="choosePhotos" type="button"><span aria-hidden="true">＋</span> 放入照片</button>
+      <p class="format-note">选择此浏览器可读取的图片，单张最大 25 MB</p>
     </section>
 
     <section class="scene-caption" id="sceneCaption" aria-live="polite" hidden>
@@ -45,7 +45,7 @@
         <button class="text-button" id="historyToggle" type="button">回望 <span aria-hidden="true">↗</span></button>
         <span class="quiet-hint">滚动靠近 · 照片静静漫游 · R 返回</span>
       </div>
-      <div class="bottom-right"><button class="text-button clear-all" id="clearAll" type="button">清空记忆</button><label class="add-more" for="fileInput" role="button" tabindex="0">＋ 添加照片</label></div>
+      <div class="bottom-right"><button class="text-button clear-all" id="clearAll" type="button">清空记忆</button><button class="add-more" id="addMorePhotos" type="button">＋ 添加照片</button></div>
     </div>
 
     <section class="history-panel" id="historyPanel" aria-label="时间回望控制" hidden>
@@ -62,7 +62,7 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <div class="sr-only" id="liveRegion" aria-live="polite"></div>
-    <input id="fileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden>
+    <input id="fileInput" class="file-input" type="file" accept="image/*,.jpg,.jpeg,.png,.webp,.avif,.gif,.heic,.heif" multiple tabindex="-1" aria-hidden="true">
     <input id="musicFileInput" type="file" accept="audio/*" hidden>
 
     <section class="memory-dialog" id="memoryDialog" role="dialog" aria-modal="false" aria-labelledby="dialogTitle" hidden>
